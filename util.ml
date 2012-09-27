@@ -20,8 +20,6 @@
  * USA
  *---------------------------------------------------------------------------- *)
 
-open Big_int
-
 let fname dir name =
   if dir = "" then
     name
@@ -35,12 +33,3 @@ let drop_option optv =
 
 let list_remove l elem =
   List.filter (fun e -> e <> elem) l
-
-let pow2 = shift_left_big_int unit_big_int
-
-let in_aff_set x y =
-  (lt_big_int x zero_big_int) ||
-  (gt_big_int (and_big_int x (pow2 y)) zero_big_int)
-
-let add_to_aff_set x y =
-    or_big_int x (shift_left_big_int unit_big_int y)
