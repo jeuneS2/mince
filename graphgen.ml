@@ -30,8 +30,5 @@ let dump_dot dir name tasks deps =
 
   let out_f = open_out (sprintf "%s.dot" (fname dir name)) in
   fprintf out_f "digraph SCC {\n";
-  List.iter (fun t ->
-    List.iter (fun d ->
-      fprintf out_f "  \"%s\" -> \"%s\"\n" d.dep_src d.dep_dst)
-      (List.filter (fun d -> d.dep_src = t.name) deps)) tasks;
+  List.iter (fun d -> fprintf out_f "  \"%s\" -> \"%s\"\n" d.dep_src d.dep_dst) deps;
   fprintf out_f "}\n"
