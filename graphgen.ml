@@ -23,6 +23,31 @@
 open Spec
 open Printf
 open Util
+open Topsort
+
+let dump_dot_eq out_f indeps =
+  let eq = equality_classes indeps in
+  List.iter (fun c ->
+    if (List.length c) > 1 then
+      begin
+        fprintf out_f "subgraph \"cluster";
+        List.iter (fun t -> fprintf out_f "_%s" t.name) c;
+        fprintf out_f "\" {\nlabel = EQ\n";
+        List.iter (fun t -> fprintf out_f "\"%s\"\n" t.name) c;
+        fprintf out_f "}\n";
+      end) eq
+
+let dump_dot_comp out_f indeps =
+  let comp = comparable_classes indeps in
+  List.iter (fun c ->
+    if (List.length c) > 1 then
+      begin
+        fprintf out_f "subgraph \"cluster";
+        List.iter (fun t -> fprintf out_f "_%s" t.name) c;
+        fprintf out_f "\" {\nlabel = COMP\n";
+        List.iter (fun t -> fprintf out_f "\"%s\"\n" t.name) c;
+        fprintf out_f "}\n";
+      end) comp
 
 let dump_dot dir name tasks deps =
   if !Options.verbose then
@@ -30,5 +55,11 @@ let dump_dot dir name tasks deps =
 
   let out_f = open_out (sprintf "%s.dot" (fname dir name)) in
   fprintf out_f "digraph SCC {\n";
+  List.iter (fun t -> fprintf out_f "  \"%s\"\n" t.name) tasks;
   List.iter (fun d -> fprintf out_f "  \"%s\" -> \"%s\"\n" d.dep_src d.dep_dst) deps;
-  fprintf out_f "}\n"
+  let nodes = build_nodes tasks deps in
+  let indeps = List.map (fun t -> (t, indep nodes tasks t)) tasks in
+  dump_dot_comp out_f indeps;
+  (* dump_dot_eq out_f indeps; *)
+  fprintf out_f "}\n";
+  flush out_f

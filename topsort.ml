@@ -70,14 +70,6 @@ let topsort nodes tasks =
   List.fold_left (fun s n -> visit nodes s [] n) ([], []) start
 
 
-let rec precedes nodes seen src dst =
-  let n = find_node nodes src in
-  List.fold_left (fun r t ->
-    if r then true
-    else if t = dst then true
-    else if List.mem t seen then false
-    else precedes nodes (src :: seen) t dst) false n.node_succs
-
 let rec succ_set nodes task seen =
   let n = find_node nodes task in
   List.fold_left (fun r t -> 
@@ -99,16 +91,6 @@ let indep nodes tasks task =
     (not (List.memq t preds)) && (not (List.memq t succs)))
     tasks
 
-let rec indep_classes indeps =
-  match indeps with    
-  | (task, indep) :: tail -> 
-      if indep = [] then
-        (List.map (fun (t, _) -> t) [(List.hd indeps)]) :: (indep_classes (List.tl indeps))
-      else
-        let eq, rest = List.partition (fun (t, i) -> i = indep) indeps in
-        (List.map (fun (t, _) -> t) eq) :: (indep_classes rest)
-  | [] -> []
-
 let print_indeps tasks deps =
   let nodes = build_nodes tasks deps in
   let indeps = List.map (fun t -> (t, indep nodes tasks t)) tasks in
@@ -117,61 +99,73 @@ let print_indeps tasks deps =
     List.iter (fun t -> fprintf stdout "%s, " t.name) l;
     fprintf stdout "}\n") indeps
 
-let rec swap_seq_body seq a inds_a b inds_b =
-  match seq with
-  | head :: tail ->
-      if not (List.mem head.node_task inds_a) || not (List.mem head.node_task inds_b) then  
-        (false, [])
-      else if head = b then
-        (true, a :: tail)
-      else 
-        let ok, list = swap_seq_body tail a inds_a b inds_b in
-        (ok, head :: list)
-  | [] -> (true, [ a ])
-
-let rec swap_seq seq a inds_a b inds_b =
-  match seq with
-  | head :: tail ->
-      if head = a then
-        let ok, list = swap_seq_body tail a inds_a b inds_b in
-        (ok, b :: list)
-      else if head = b then
-        let ok, list = swap_seq_body tail b inds_b a inds_a in
-        (ok, a :: list)
+let rec equality_classes indeps =
+  match indeps with    
+  | (task, indep) :: tail -> 
+      if indep = [] then
+        (List.map (fun (t, _) -> t) [(List.hd indeps)]) :: (equality_classes (List.tl indeps))
       else
-        let ok, list = swap_seq tail a inds_a b inds_b in
-        (ok, head :: list)
-  | [] -> (true, seq)
+        let eq, rest = List.partition (fun (t, i) -> i = indep) indeps in
+        (List.map (fun (t, _) -> t) eq) :: (equality_classes rest)
+  | [] -> []
+
+let print_equality_classes tasks deps =
+  let nodes = build_nodes tasks deps in
+  let indeps = List.map (fun t -> (t, indep nodes tasks t)) tasks in
+  let classes = equality_classes indeps in
+  List.iter (fun c ->
+    if (List.length c) > 1 then
+      begin
+        fprintf stdout "EQ { ";
+        List.iter (fun t -> fprintf stdout "%s, " t.name) c;
+        fprintf stdout "}\n"
+      end) classes
+
+let rec comparable_classes indeps =
+   match indeps with    
+  | (task, indep) :: tail -> 
+      if indep = [] then
+        (List.map (fun (t, _) -> t) [(List.hd indeps)]) :: (comparable_classes (List.tl indeps))
+      else
+        let comp a b = List.exists (fun t -> List.mem t b) a in
+        let eq, rest = List.partition (fun (t, i) -> comp i indep) indeps in
+        (List.map (fun (t, _) -> t) eq) :: (comparable_classes rest)
+  | [] -> [] 
+
+let print_comparable_classes tasks deps =
+  let nodes = build_nodes tasks deps in
+  let indeps = List.map (fun t -> (t, indep nodes tasks t)) tasks in
+  let classes = comparable_classes indeps in
+  List.iter (fun c ->
+    if (List.length c) > 1 then
+      begin
+        fprintf stdout "COMP { ";
+        List.iter (fun t -> fprintf stdout "%s, " t.name) c;
+        fprintf stdout "}\n"
+      end) classes
 
 let print_seq seq =
   fprintf stdout "< ";
   List.iter (fun n -> fprintf stdout "%s, " n.node_task.name) seq;
   fprintf stdout ">\n"    
 
-let rec permute_seq nodes indeps seq worklist print =
-  if print then
-    print_seq seq;
-  match worklist with
-  | task :: tail ->
-      permute_seq nodes indeps seq tail false;
-      let node = find_node nodes task
-      and inds = List.assoc task indeps in
-      List.iter (fun t ->
-        if task.name < t.name then
-          begin
-            let n = find_node nodes t
-            and i = List.assoc t indeps in
-            let ok, swapped = swap_seq seq node inds n i in
-            if ok then
-              permute_seq nodes indeps swapped tail true
-          end) inds
-  | [] -> ()
+let rec build_permutes seq tasks deps =
+  if tasks = [] then
+    print_seq (List.rev seq)
+  else
+    let nodes = build_nodes tasks deps in
+    let start = List.filter (fun n -> (List.length n.node_preds) = 0) nodes in
+    let start_safe = if start = [] then [ List.hd nodes ] else start in
+    if start = [] then
+      fprintf stderr "Error: Cycle in task graph, break for random task\n";
+    List.iter (fun s ->
+      let name = s.node_task.name in
+      let tasks' = List.filter (fun t -> t <> s.node_task) tasks and
+          deps' = List.filter (fun d -> d.dep_src <> name && d.dep_dst <> name) deps in
+      build_permutes (s :: seq) tasks' deps') start_safe
 
 let print_permutes tasks deps =
-  let nodes = build_nodes tasks deps in
-  let _, sorted = topsort nodes tasks in
-  let indeps = List.map (fun t -> (t, indep nodes tasks t)) tasks in
-  permute_seq nodes indeps sorted (List.map (fun n -> n.node_task) sorted) true
+  build_permutes [] tasks deps
 
 let sort tasks deps =
   if !Options.verbose then

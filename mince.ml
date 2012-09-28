@@ -33,4 +33,6 @@ let _ =
   let sorted = Topsort.sort tasks deps in
   Spec.print_spec stdout (sorted,deps);
   Topsort.print_indeps tasks deps;
-  Topsort.print_permutes tasks deps
+  Topsort.print_equality_classes tasks deps;
+  Topsort.print_comparable_classes tasks deps
+  (* Topsort.print_permutes tasks deps *)
