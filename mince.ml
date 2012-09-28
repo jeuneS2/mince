@@ -31,4 +31,6 @@ let _ =
   if !Options.dot then
     Graphgen.dump_dot !Options.outdir !Options.outname tasks deps;
   let sorted = Topsort.sort tasks deps in
-  Spec.print_spec stdout (sorted,deps)
+  Spec.print_spec stdout (sorted,deps);
+  Topsort.print_indeps tasks deps;
+  Topsort.print_permutes tasks deps
