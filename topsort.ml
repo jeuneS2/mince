@@ -114,7 +114,7 @@ let print_equality_classes tasks deps =
   let indeps = List.map (fun t -> (t, indep nodes tasks t)) tasks in
   let classes = equality_classes indeps in
   List.iter (fun c ->
-    if (List.length c) > 1 then
+    if (List.length c) > 0 then
       begin
         fprintf stdout "EQ { ";
         List.iter (fun t -> fprintf stdout "%s, " t.name) c;
@@ -137,7 +137,7 @@ let print_comparable_classes tasks deps =
   let indeps = List.map (fun t -> (t, indep nodes tasks t)) tasks in
   let classes = comparable_classes indeps in
   List.iter (fun c ->
-    if (List.length c) > 1 then
+    if (List.length c) > 0 then
       begin
         fprintf stdout "COMP { ";
         List.iter (fun t -> fprintf stdout "%s, " t.name) c;
@@ -166,6 +166,44 @@ let rec build_permutes seq tasks deps =
 
 let print_permutes tasks deps =
   build_permutes [] tasks deps
+
+let rec build_sub_permutes seq tasks deps subs =
+  if tasks = [] then
+    print_seq (List.rev seq)
+  else
+    let nodes = build_nodes tasks deps in
+    let start = List.filter (fun n -> (List.length n.node_preds) = 0) nodes in
+    let start_safe = if start = [] then [ List.hd nodes ] else start in
+    if start = [] then
+      fprintf stderr "Error: Cycle in task graph, break for random task\n";
+    let start_sorted = List.sort (fun a b ->
+      let x = List.mem a.node_task subs and y = List.mem b.node_task subs in
+      if x && not y then 1
+      else if y && not x then -1
+      else 0) start_safe in
+    let hd = List.hd start_sorted in
+    if (List.mem hd.node_task subs) then
+      List.iter (fun s ->
+        let name = s.node_task.name in
+        let tasks' = List.filter (fun t -> t <> s.node_task) tasks and
+            deps' = List.filter (fun d -> d.dep_src <> name && d.dep_dst <> name) deps in
+        build_sub_permutes (s :: seq) tasks' deps' subs) start_safe
+    else
+        let name = hd.node_task.name in
+        let tasks' = List.filter (fun t -> t <> hd.node_task) tasks and
+            deps' = List.filter (fun d -> d.dep_src <> name && d.dep_dst <> name) deps in
+        build_sub_permutes (hd :: seq) tasks' deps' subs
+      
+
+let print_sub_permutes classfun tasks deps =
+  let nodes = build_nodes tasks deps in
+  let indeps = List.map (fun t -> (t, indep nodes tasks t)) tasks in
+  let classes = classfun indeps in
+  List.iter (fun c ->
+    fprintf stdout "SUB-PERMUTATION { ";
+    List.iter (fun t -> fprintf stdout "%s, " t.name) c;
+    fprintf stdout "}\n";
+    build_sub_permutes [] tasks deps c) classes
 
 let sort tasks deps =
   if !Options.verbose then
