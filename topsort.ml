@@ -52,6 +52,55 @@ let build_nodes tasks deps =
           node_preds = preds;
           node_succs = succs } :: r) [] tasks
 
+
+let rec indep2 tasks deps =
+  match tasks with
+  | [] -> []
+  | _ ->
+      let nodes = build_nodes tasks deps in
+      let nnoprecs, ninner = List.partition (fun n -> (List.length n.node_preds) = 0) nodes in
+      let noprecs = List.map (fun n -> n.node_task) nnoprecs in
+      let inner = List.map (fun n -> n.node_task) ninner in
+      noprecs :: (indep2 inner deps)
+
+let print_indeps2 tasks deps =
+  let indeps = indep2 tasks deps in
+  fprintf stdout "Independent groups:\n";
+  List.iter (fun l ->
+    fprintf stdout "{ ";
+    List.iter (fun t -> fprintf stdout "%s, " t.name) l;
+    fprintf stdout "}\n") indeps
+
+let rec depchain nodes n =
+  if (List.length n.node_succs) = 1 then
+    let succ = find_node nodes (List.hd n.node_succs) in
+    if (List.length succ.node_preds) = 1 then
+      succ.node_task :: (depchain nodes succ)
+    else []
+  else []
+  
+let rec dep2 tasks deps =
+  match tasks with
+  | [] -> []
+  | _ ->
+      let nodes = build_nodes tasks deps in
+      let nnoprec = List.filter (fun n -> (List.length n.node_preds) = 0) nodes in
+      let chains = List.fold_left (fun r n -> (n.node_task :: (depchain nodes n)) :: r) [] nnoprec in
+      let remain = List.filter (fun t -> not (List.mem t (List.flatten chains))) tasks in
+      List.append chains (dep2 remain deps)
+
+let print_deps2 tasks deps =
+  let deps = dep2 tasks deps in
+  fprintf stdout "Dependent groups:\n";
+  List.iter (fun l ->
+    fprintf stdout "{ ";
+    List.iter (fun t -> fprintf stdout "%s, " t.name) l;
+    fprintf stdout "}\n") deps
+
+(****************************************************************)
+(* Leftovers below                                              *)
+(****************************************************************)
+
 let rec visit nodes (seen, sorted) recseen node =
   if List.mem node recseen then
     fprintf stderr "Error: Detected cyclic dependency for task %s\n" node.node_task.name;
@@ -96,23 +145,6 @@ let print_indeps tasks deps =
   let indeps = List.map (fun t -> (t, indep nodes tasks t)) tasks in
   List.iter (fun (t, l) ->
     fprintf stdout "%s: { " t.name;
-    List.iter (fun t -> fprintf stdout "%s, " t.name) l;
-    fprintf stdout "}\n") indeps
-
-let rec indep2 tasks deps =
-  match tasks with
-  | [] -> []
-  | _ ->
-      let nodes = build_nodes tasks deps in
-      let nnoprec, ninner = List.partition (fun n -> (List.length n.node_preds) = 0) nodes in
-      let noprec = List.map (fun n -> n.node_task) nnoprec in
-      let inner = List.map (fun n -> n.node_task) ninner in
-      noprec :: (indep2 inner deps)
-
-let print_indeps2 tasks deps =
-  let indeps = indep2 tasks deps in
-  List.iter (fun l ->
-    fprintf stdout "{ ";
     List.iter (fun t -> fprintf stdout "%s, " t.name) l;
     fprintf stdout "}\n") indeps
 
