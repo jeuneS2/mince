@@ -28,12 +28,12 @@ let find_task tasks name =
   List.find (fun t -> t.name = name) tasks
 
 let find_succs tasks deps name =
-  List.map (fun d -> find_task tasks d.dep_dst)
-    (List.filter (fun d -> d.dep_src = name) deps)
+  List.fold_left (fun r d -> try (find_task tasks d.dep_dst) :: r with | Not_found -> r)
+    [] (List.filter (fun d -> d.dep_src = name) deps)
 
 let find_preds tasks deps name =
-  List.map (fun d -> find_task tasks d.dep_src)
-    (List.filter (fun d -> d.dep_dst = name) deps)
+  List.fold_left (fun r d -> try (find_task tasks d.dep_src) :: r with | Not_found -> r)
+    [] (List.filter (fun d -> d.dep_dst = name) deps)
 
 type node =
     { node_task: task;
@@ -47,10 +47,10 @@ let build_nodes tasks deps =
   List.fold_left 
     (fun r task ->
       let preds = find_preds tasks deps task.name
-      and succs = find_succs tasks deps task.name in
-      { node_task = task;
-        node_preds = preds;
-        node_succs = succs } :: r) [] tasks
+        and succs = find_succs tasks deps task.name in
+        { node_task = task;
+          node_preds = preds;
+          node_succs = succs } :: r) [] tasks
 
 let rec visit nodes (seen, sorted) recseen node =
   if List.mem node recseen then
@@ -96,6 +96,23 @@ let print_indeps tasks deps =
   let indeps = List.map (fun t -> (t, indep nodes tasks t)) tasks in
   List.iter (fun (t, l) ->
     fprintf stdout "%s: { " t.name;
+    List.iter (fun t -> fprintf stdout "%s, " t.name) l;
+    fprintf stdout "}\n") indeps
+
+let rec indep2 tasks deps =
+  match tasks with
+  | [] -> []
+  | _ ->
+      let nodes = build_nodes tasks deps in
+      let nnoprec, ninner = List.partition (fun n -> (List.length n.node_preds) = 0) nodes in
+      let noprec = List.map (fun n -> n.node_task) nnoprec in
+      let inner = List.map (fun n -> n.node_task) ninner in
+      noprec :: (indep2 inner deps)
+
+let print_indeps2 tasks deps =
+  let indeps = indep2 tasks deps in
+  List.iter (fun l ->
+    fprintf stdout "{ ";
     List.iter (fun t -> fprintf stdout "%s, " t.name) l;
     fprintf stdout "}\n") indeps
 

@@ -33,11 +33,12 @@ let _ =
     Graphgen.dump_dot !Options.outdir !Options.outname tasks deps;
   let sorted = Topsort.sort tasks deps in
   Spec.print_spec stdout (sorted,deps);
-  Topsort.print_indeps tasks deps;
-  Topsort.print_equality_classes tasks deps;
-  Topsort.print_comparable_classes tasks deps;
-  fprintf stdout "EQUALITY PERMUTATIONS\n";
-  Topsort.print_sub_permutes Topsort.equality_classes tasks deps;
-  fprintf stdout "COMPARABLE PERMUTATIONS\n";
-  Topsort.print_sub_permutes Topsort.comparable_classes tasks deps
+  Topsort.print_indeps2 tasks deps;
+  (* Topsort.print_indeps tasks deps; *)
+  (* Topsort.print_equality_classes tasks deps; *)
+  (* Topsort.print_comparable_classes tasks deps; *)
+  (* fprintf stdout "EQUALITY PERMUTATIONS\n"; *)
+  (* Topsort.print_sub_permutes Topsort.equality_classes tasks deps; *)
+  (* fprintf stdout "COMPARABLE PERMUTATIONS\n"; *)
+  (* Topsort.print_sub_permutes Topsort.comparable_classes tasks deps *)
   (* Topsort.print_permutes tasks deps *)
