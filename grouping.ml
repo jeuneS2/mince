@@ -84,29 +84,32 @@ let print_indeps tasks deps =
 let print_indeps_spec dir name tasks deps = 
   let out_f = open_out (sprintf "%s.indep.txt" (fname dir name)) in
   let indepgrps = indep tasks deps in  
-  (* groups are already ordered according to dependencies *)
   fprintf out_f "%s" spec_magic;
+  (* groups are already ordered according to dependencies, use
+	 offsets/deadlines to encode dependencies *)
+  let offset = ref 0 in
   List.iter (fun l ->
-	let period = group_period l in
+	let wcet = group_wcet l in
 	List.iter (fun t -> 
 	  fprintf out_f "Task\t\"%s\"\t%d\t%d\t%d\t(%d)\n"
-		t.name t.period t.wcet 0 period
+		t.name t.period t.wcet !offset (!offset+wcet);
 	) l;
-  ) indepgrps;
-  let seen = Hashtbl.create 10 in
-  List.iter (fun d ->
-	let srcgrp = find_group indepgrps d.dep_src
-	and dstgrp = find_group indepgrps d.dep_dst in
-	try Hashtbl.find seen (srcgrp,dstgrp)
-	with Not_found ->
-	  List.iter (fun src ->
-		List.iter (fun dst ->
-		  print_dependency out_f { dep_src = src.name; dep_dst = dst.name;
-								   dep_pref = d.dep_pref; dep_pat = d.dep_pat }
-		) dstgrp
-	  ) srcgrp;
-	  Hashtbl.add seen (srcgrp,dstgrp) ()
-  ) deps
+	offset := !offset+wcet
+  ) indepgrps
+  (* let seen = Hashtbl.create 10 in *)
+  (* List.iter (fun d -> *)
+  (* 	let srcgrp = find_group indepgrps d.dep_src *)
+  (* 	and dstgrp = find_group indepgrps d.dep_dst in *)
+  (* 	try Hashtbl.find seen (srcgrp,dstgrp) *)
+  (* 	with Not_found -> *)
+  (* 	  List.iter (fun src -> *)
+  (* 		List.iter (fun dst -> *)
+  (* 		  print_dependency out_f { dep_src = src.name; dep_dst = dst.name; *)
+  (* 								   dep_pref = d.dep_pref; dep_pat = d.dep_pat } *)
+  (* 		) dstgrp *)
+  (* 	  ) srcgrp; *)
+  (* 	  Hashtbl.add seen (srcgrp,dstgrp) () *)
+  (* ) deps *)
 
 let rec depchain nodes n =
   if (List.length n.node_succs) = 1 then

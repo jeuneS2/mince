@@ -200,9 +200,9 @@ let dump out_f tasks deps buffers mapping =
   if util_ceil > 1 then
     failwith "Task set not schedulable (not enough cores for utilization)";
 
-  let (maxoff,hyper) = 
+  let (_,hyper) = 
     List.fold_left (fun (o,p) t -> (max o t.offset, lcm p t.period)) (0, 1) tasks in
-  let hp = maxoff + hyper in
+  let hp = hyper in
 
   let tasks = List.sort (fun t s -> compare (task_util s) (task_util t)) tasks in
 
@@ -217,7 +217,6 @@ let dump out_f tasks deps buffers mapping =
 
   refine_jobs jobs jobdeps;
 
-  fprintf out_f "maxOff = %d;\n" maxoff;
   fprintf out_f "hyper = %d;\n" hyper;
 
   fprintf out_f "Tasks = {\n";
@@ -240,8 +239,8 @@ let dump out_f tasks deps buffers mapping =
       src.job_task.name src.job_id dst.job_task.name dst.job_id) jobdeps;
   fprintf out_f "};\n";
 
-  fprintf out_f "// Tasks: %d, Jobs: %d, Precs: %d, O_max: %d, H: %d, Util: %f\n"
+  fprintf out_f "// Tasks: %d, Jobs: %d, Precs: %d, H: %d, Util: %f\n"
     (List.length tasks) (List.length jobs) (List.length jobdeps)
-    maxoff hyper (utilization tasks);
+    hyper (utilization tasks);
  
   flush out_f

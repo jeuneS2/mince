@@ -29,7 +29,6 @@ tuple clique {
   {string} clq;
 }
 
-int maxOff = ...;
 int hyper = ...;
 
 {string} Tasks = ...;

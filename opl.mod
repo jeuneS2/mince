@@ -11,9 +11,11 @@ execute {
   cp.param.TimeLimit = 900;
 }
 
+dexpr int latency = @LATENCY@;
+
 int level = 1;
 
-// minimize n_cores;
+minimize latency;
 
 constraints {
   // Nothing may overlap
