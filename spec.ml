@@ -64,8 +64,10 @@ let print_dependency out_f dep =
 
 type spec = (task list * dependency list)
 
+let spec_magic = "TFF-2.0\n"
+
 let print_spec out_f spec =
-  fprintf stdout "TFF-2.0\n";
+  fprintf stdout "%s" spec_magic;
   let (tasks,deps) = spec in
   List.iter (fun t -> print_task out_f t) tasks;
   List.iter (fun d -> print_dependency out_f d) deps

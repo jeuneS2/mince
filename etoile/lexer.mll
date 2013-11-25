@@ -20,22 +20,47 @@
  * USA
  *---------------------------------------------------------------------------- *)
 
-open Spec
-open Util
-open Printf
+{
+open Parser
 
-let _ =
-  Options.parse;
-  let infile = if !Options.inname = "" then stdin else open_in !Options.inname in
-  let lexbuf = Lexing.from_channel infile in
-  let (tasks,deps) = Parser.task_specs Lexer.token lexbuf in
-  Spec.print_spec stdout (tasks,deps);
-  if !Options.dot then
-	begin
-      Graphgen.dump_indep_dot !Options.outdir !Options.outname tasks deps;
-      Graphgen.dump_dep_dot !Options.outdir !Options.outname tasks deps
-	end;
-  Grouping.print_indeps tasks deps;
-  Grouping.print_indeps_spec !Options.outdir !Options.outname tasks deps;
-  Grouping.print_deps tasks deps;
-  Grouping.print_deps_spec !Options.outdir !Options.outname tasks deps
+exception Error of Location.t
+
+(* Update line number for location info *)
+let incr_line lexbuf =
+  let pos = lexbuf.Lexing.lex_curr_p in
+  lexbuf.Lexing.lex_curr_p <- { pos with
+    Lexing.pos_lnum = pos.Lexing.pos_lnum + 1;
+    Lexing.pos_bol = pos.Lexing.pos_cnum;
+  }
+}
+
+let blank = [' ' '\009' '\012']
+
+rule token = parse
+| '#' [^ '\n']*
+    { token lexbuf }
+| '\n'
+    { incr_line lexbuf;
+      token lexbuf }
+| blank +
+    { token lexbuf }
+
+| "TFF-2.0" { MAGIC_V2 }
+| "Task" { TASK }
+| "Dependency" { DEPENDENCY }
+| "ComBuffer" { COMBUFFER }
+| "Map" { MAP }
+
+| '-'?['0'-'9']+
+    { INT (int_of_string (Lexing.lexeme lexbuf)) }
+| '"'[^'"']*'"'
+    { STRING (String.sub (Lexing.lexeme lexbuf)
+                1 ((String.length (Lexing.lexeme lexbuf))-2)) }
+
+| '(' { LPAR }
+| ')' { RPAR }
+| ',' { COMMA }
+| ':' { COLON }
+| ":=" { DEF }
+| eof { EOF }
+| _ { raise (Error (Location.curr lexbuf)) }

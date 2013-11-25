@@ -20,22 +20,18 @@
  * USA
  *---------------------------------------------------------------------------- *)
 
-open Spec
-open Util
-open Printf
+open Big_int
 
-let _ =
-  Options.parse;
-  let infile = if !Options.inname = "" then stdin else open_in !Options.inname in
-  let lexbuf = Lexing.from_channel infile in
-  let (tasks,deps) = Parser.task_specs Lexer.token lexbuf in
-  Spec.print_spec stdout (tasks,deps);
-  if !Options.dot then
-	begin
-      Graphgen.dump_indep_dot !Options.outdir !Options.outname tasks deps;
-      Graphgen.dump_dep_dot !Options.outdir !Options.outname tasks deps
-	end;
-  Grouping.print_indeps tasks deps;
-  Grouping.print_indeps_spec !Options.outdir !Options.outname tasks deps;
-  Grouping.print_deps tasks deps;
-  Grouping.print_deps_spec !Options.outdir !Options.outname tasks deps
+let fname dir name =
+  if dir = "" then
+    name
+  else
+    dir^"/"^name
+
+let drop_option optv =
+  match optv with
+  | Some v -> v
+  | None -> failwith "Missing value for option variable"
+
+let list_remove l elem =
+  List.filter (fun e -> e <> elem) l

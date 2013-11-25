@@ -20,22 +20,27 @@
  * USA
  *---------------------------------------------------------------------------- *)
 
-open Spec
-open Util
 open Printf
 
-let _ =
-  Options.parse;
-  let infile = if !Options.inname = "" then stdin else open_in !Options.inname in
-  let lexbuf = Lexing.from_channel infile in
-  let (tasks,deps) = Parser.task_specs Lexer.token lexbuf in
-  Spec.print_spec stdout (tasks,deps);
-  if !Options.dot then
-	begin
-      Graphgen.dump_indep_dot !Options.outdir !Options.outname tasks deps;
-      Graphgen.dump_dep_dot !Options.outdir !Options.outname tasks deps
-	end;
-  Grouping.print_indeps tasks deps;
-  Grouping.print_indeps_spec !Options.outdir !Options.outname tasks deps;
-  Grouping.print_deps tasks deps;
-  Grouping.print_deps_spec !Options.outdir !Options.outname tasks deps
+let version = "0.1"
+let outname = ref "main"
+let outdir = ref ""
+let inname = ref ""
+let verbose = ref false
+
+let options =
+  [ "-out", Arg.Set_string outname, " Specifies the name for output files";
+    "-d", Arg.Set_string outdir, " Specifies the directory for output files";
+    "-verbose", Arg.Set verbose, " Output detailed messages about what the compiler is doing";
+    "-version", Arg.Unit (fun () -> print_endline (Sys.argv.(0) ^ " " ^ version); exit 0), " Display the version" ]
+
+let usage = Sys.argv.(0) ^ " <options> [<file>]"
+
+let parse =
+  Arg.parse options
+    (fun x ->
+      if !inname = "" then
+        inname := x
+      else
+        raise (Arg.Bad "Cannot handle more than one input file"))
+    usage

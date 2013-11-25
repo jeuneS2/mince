@@ -20,22 +20,11 @@
  * USA
  *---------------------------------------------------------------------------- *)
 
-open Spec
-open Util
-open Printf
+let rec gcd u v =
+  if v <> 0 then (gcd v (u mod v))
+  else (abs u)
 
-let _ =
-  Options.parse;
-  let infile = if !Options.inname = "" then stdin else open_in !Options.inname in
-  let lexbuf = Lexing.from_channel infile in
-  let (tasks,deps) = Parser.task_specs Lexer.token lexbuf in
-  Spec.print_spec stdout (tasks,deps);
-  if !Options.dot then
-	begin
-      Graphgen.dump_indep_dot !Options.outdir !Options.outname tasks deps;
-      Graphgen.dump_dep_dot !Options.outdir !Options.outname tasks deps
-	end;
-  Grouping.print_indeps tasks deps;
-  Grouping.print_indeps_spec !Options.outdir !Options.outname tasks deps;
-  Grouping.print_deps tasks deps;
-  Grouping.print_deps_spec !Options.outdir !Options.outname tasks deps
+let lcm m n =
+  match m, n with
+  | 0, _ | _, 0 -> 0
+  | m, n -> abs (m * n) / (gcd m n)

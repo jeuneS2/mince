@@ -3,26 +3,24 @@ CAMLOPT=ocamlopt -p
 CAMLLEX=ocamllex
 CAMLDEP=ocamldep
 CAMLDOC=ocamldoc
-COMPFLAGS= -warn-error A -dtypes -g
+COMPFLAGS=-warn-error A -dtypes -g -I +ocamlgraph
 CAMLYACC=ocamlyacc
 YACCFLAGS=-v
 DOCFLAGS=-html -d camldoc
 
 COMPOBJS=location.cmo spec.cmo math.cmo util.cmo \
-	parser.cmo lexer.cmo \
+	lexer.cmo parser.cmo \
 	options.cmo \
-	grouping.cmo graphgen.cmo \
-	mince.cmo
+	cliques.cmo ilpgen.cmo \
+	etoile.cmo
 
 OPTOBJS=$(COMPOBJS:.cmo=.cmx)
 
 SOURCES=$(COMPOBJS:.cmo=.ml)
 
 all: compilo
-#	cp preludec "$(HOME)/bin"
 
 opt: compiloopt
-#	cp preludec.opt "$(HOME)/bin"
 
 doc: compilo
 	$(CAMLDOC) $(DOCFLAGS) $(SOURCES)
@@ -30,10 +28,10 @@ doc: compilo
 # The compiler
 
 compilo: $(COMPOBJS)
-	 $(CAMLC) -o mince -g nums.cma $(COMPOBJS)
+	$(CAMLC) -o etoile -g nums.cma ocamlgraph/graph.cma $(COMPOBJS)
 
 compiloopt: $(OPTOBJS)
-	   $(CAMLOPT) -o mince.opt nums.cmxa $(OPTOBJS)
+	$(CAMLOPT) -o etoile.opt nums.cmxa ocamlgraph/graph.cmxa $(OPTOBJS)
 
 # The parser
 
@@ -54,13 +52,13 @@ lexer.ml: lexer.mll
 	$(CAMLC) $(COMPFLAGS) -c $<
 
 .ml.cmx:
-	$(CAMLOPT)  -c $<
+	$(CAMLOPT) $(COMPFLAGS) -c $<
 
 # Misc
 
 clean:
 	rm -f *.cm[iox] *.[so] *~ *.annot .depend
-	rm -f parser.ml parser.mli lexer.ml parser.output mince mince.opt
+	rm -f parser.ml parser.mli lexer.ml parser.output etoile etoile.opt
 
 .depend:  parser.mli parser.ml lexer.ml $(SOURCES)
 	$(CAMLDEP) $(DEPFLAGS) *.mli *.ml > .depend
