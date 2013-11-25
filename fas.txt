@@ -1,0 +1,72 @@
+TFF-2.0
+Task "GNC_DS111"	1000	300	0	(1000)
+Task "tm0"	1000	10	0	(1000)
+Task "str0"	1000	10	0	(1000)
+Task "PDE117"	1000	30	0	(1000)
+Task "Gyro_Acq79"	1000	30	0	(1000)
+Task "gyro0"	1000	10	0	(1000)
+Task "gps0"	1000	10	0	(1000)
+Task "gnc0"	1000	10	0	(1000)
+Task "Str_Acq90"	1000	30	0	(1000)
+Task "pde0"	1000	10	0	(1000)
+Task "GPS_Acq85"	1000	30	0	(1000)
+Task "TM_TC127"	1000	100	0	(1000)
+Task "tc0"	1000	10	0	(1000)
+Task "PWS122"	1000	30	0	(1000)
+Task "SGS119"	1000	30	0	(1000)
+Task "GNC_US109"	1000	210	0	(1000)
+Task "FDIR100"	1000	15	0	(1000)
+Task "sgs0"	1000	10	0	(1000)
+Task "pws0"	1000	10	0	(1000)
+#Dependency "GNC_US109"	"FDIR100"	(0:10)
+Dependency "GNC_US109"	"gnc0"	(0:0)
+Dependency "GNC_US109"	"GNC_DS111"	(0:0)
+Dependency "str0"	"Str_Acq90"	(0:0)
+Dependency "PWS122"	"pws0"	(0:0)
+Dependency "gyro0"	"Gyro_Acq79"	(0:0)
+Dependency "gps0"	"GPS_Acq85"	(0:0)
+Dependency "Str_Acq90"	"FDIR100"	(0:0)
+Dependency "Str_Acq90"	"GNC_US109"	(0:0)
+Dependency "SGS119"	"sgs0"	(0:0)
+Dependency "PDE117"	"pde0"	(0:0)
+Dependency "GNC_DS111"	"SGS119"	(0:0)
+Dependency "GNC_DS111"	"PWS122"	(0:0)
+Dependency "Gyro_Acq79"	"GNC_US109"	(0:0)
+Dependency "Gyro_Acq79"	"FDIR100"	(0:0)
+Dependency "FDIR100"	"GNC_US109"	(0:0)
+Dependency "FDIR100"	"PDE117"	(0:0)
+Dependency "FDIR100"	"TM_TC127"	(0:0)
+Dependency "tc0"	"TM_TC127"	(0:0)
+Dependency "GPS_Acq85"	"GNC_US109"	(0:0)
+Dependency "GPS_Acq85"	"FDIR100"	(0:0)
+#Dependency "GNC_DS111"	"PDE117"	(0:10)
+#Dependency "TM_TC127"	"GPS_Acq85"	(0:10)
+#Dependency "TM_TC127"	"Gyro_Acq79"	(0:100)
+Dependency "TM_TC127"	"tm0"	(0:0)
+#Dependency "TM_TC127"	"Str_Acq90"	(0:1)
+ComBuffer "GNC_US109.o"	"GNC_DS111.us"	8	1
+ComBuffer "TM_TC127.cmd"	"tm0.tm"	8	1
+ComBuffer "FDIR100.to_pde"	"PDE117.fdir"	8	1
+ComBuffer "GNC_DS111.pde"	"PDE117.gnc"	8	3	:= "GNC_DS111_pde_PDE117_gnc_init"
+ComBuffer "gyro0.gyro"	"Gyro_Acq79.gyro"	8	1
+ComBuffer "TM_TC127.cmd"	"Gyro_Acq79.tc"	8	3	:= "TM_TC127_cmd_Gyro_Acq79_tc_init"
+ComBuffer "GNC_US109.o"	"gnc0.gnc"	8	1
+ComBuffer "str0.str"	"Str_Acq90.str"	8	1
+ComBuffer "TM_TC127.cmd"	"Str_Acq90.tc"	8	3	:= "TM_TC127_cmd_Str_Acq90_tc_init"
+ComBuffer "PDE117.pde_order"	"pde0.pde"	8	1
+ComBuffer "gps0.gps"	"GPS_Acq85.gps"	8	1
+ComBuffer "TM_TC127.cmd"	"GPS_Acq85.tc"	8	3	:= "TM_TC127_cmd_GPS_Acq85_tc_init"
+ComBuffer "tc0.tc"	"TM_TC127.from_gr"	8	1
+ComBuffer "FDIR100.to_tm"	"TM_TC127.fdir"	8	100
+ComBuffer "GNC_DS111.pws"	"PWS122.gnc"	8	2
+ComBuffer "GNC_DS111.sgs"	"SGS119.gnc"	8	1
+ComBuffer "FDIR100.to_gnc"	"GNC_US109.fdir"	8	10
+ComBuffer "Gyro_Acq79.o"	"GNC_US109.gyr"	8	10
+ComBuffer "GPS_Acq85.o"	"GNC_US109.gps"	8	1
+ComBuffer "Str_Acq90.o"	"GNC_US109.str"	8	1
+ComBuffer "Gyro_Acq79.o"	"FDIR100.gyr"	8	1
+ComBuffer "GPS_Acq85.o"	"FDIR100.gps"	8	1
+ComBuffer "Str_Acq90.o"	"FDIR100.str"	8	1
+ComBuffer "GNC_US109.o"	"FDIR100.gnc"	8	3	:= "GNC_US109_o_FDIR100_gnc_init"
+ComBuffer "SGS119.sgs_order"	"sgs0.sgs"	8	1
+ComBuffer "PWS122.pws_order"	"pws0.pws"	8	1
