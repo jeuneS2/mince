@@ -202,7 +202,7 @@ let dump out_f tasks deps buffers mapping =
 
   let (maxoff,hyper) = 
     List.fold_left (fun (o,p) t -> (max o t.offset, lcm p t.period)) (0, 1) tasks in
-  let hp = maxoff + 2*hyper in
+  let hp = maxoff + hyper in
 
   let tasks = List.sort (fun t s -> compare (task_util s) (task_util t)) tasks in
 
@@ -216,22 +216,6 @@ let dump out_f tasks deps buffers mapping =
   let jobdeps = List.filter (fun (j, k) -> !(j.job_r') < hp && !(k.job_r') < hp) initjobdeps in
 
   refine_jobs jobs jobdeps;
-
-  (* let min_prod = ref (List.fold_left (fun r t ->  *)
-  (* 	r *. (float (t.wcet + 1))) *)
-  (* 	1.0 tasks) in *)
-  (* fprintf stderr "maximum min_prod: %f\n" !min_prod; *)
-  (* for i = maxoff to maxoff+hyper do *)
-  (* 	let crossing = List.fold_left (fun r j -> *)
-  (* 	  if !(j.job_r') < i && !(j.job_d') > i then j :: r else r) [] jobs in *)
-  (* 	let prod = List.fold_left (fun r j -> *)
-  (* 	  r *. (float ((min j.job_task.wcet (min (i - !(j.job_r')) (!(j.job_d') - i))) + 1))) *)
-  (* 	  1.0 crossing in *)
-  (* 	if prod < !min_prod then *)
-  (* 	  min_prod := prod; *)
-
-  (* 	fprintf stderr "prod[%d](%d): %f // %f\n" i (List.length crossing) prod !min_prod *)
-  (* done; *)
 
   fprintf out_f "maxOff = %d;\n" maxoff;
   fprintf out_f "hyper = %d;\n" hyper;
@@ -254,92 +238,6 @@ let dump out_f tasks deps buffers mapping =
   fprintf out_f "Deps = {\n";
   List.iter (fun (src, dst) -> fprintf out_f "  <\"%s_%d\", \"%s_%d\">,\n"
       src.job_task.name src.job_id dst.job_task.name dst.job_id) jobdeps;
-  fprintf out_f "};\n";
-
-  fprintf out_f "Bufs = {\n";
-  List.iter (fun b -> fprintf out_f "  \"%s_%s\",\n"
-      b.buf_src b.buf_dst) buffers;
-  fprintf out_f "};\n";
-
-  if (List.length buffers) = 0 then
-    fprintf out_f "BufProps = [ ];\n"
-  else
-    begin
-      fprintf out_f "BufProps = #[\n";
-      List.iter (fun b -> fprintf out_f "  \"%s_%s\":<\"%s\", \"%s\", %d>,\n"
-          b.buf_src b.buf_dst
-          (buffer_taskname b.buf_src) (buffer_taskname b.buf_dst)
-          (b.buf_elemsize * b.buf_size)) buffers;
-      fprintf out_f "]#;\n";
-    end;
-  flush out_f;
-
-  fprintf out_f "Hypers = {\n";
-  List.iter (fun j -> 
-    if !(j.job_r') < maxoff && !(j.job_d') > maxoff then
-      let l = List.find (fun l -> l.job_task.id = j.job_task.id && !(l.job_r') < hp && !(l.job_d') > hp) jobs in
-      fprintf out_f "<\"%s_%d\", \"%s_%d\">,\n"
-        j.job_task.name j.job_id l.job_task.name l.job_id
-  ) jobs;
-  fprintf out_f "};\n";
-  flush out_f;
-
-  let confl_edges = ref [] in
-  List.iter (fun t ->
-    List.iter (fun s ->
-      if t.id < s.id then
-		if conflict jobs t s then
-          confl_edges := (t, s) :: !confl_edges
-  ) tasks) tasks;
-
-  let clqs = Cliques.cliques tasks !confl_edges in
-  let max_clq =
-    if clqs = [] then [] else
-    List.hd (List.sort (fun x y -> compare (List.length y) (List.length x)) clqs) in
-  if (List.length max_clq) > 1 then
-    failwith "Task set not schedulable (too few cores for maximum clique)";
-  confl_edges := [];
-
-  fprintf out_f "Cliques = {\n";
-  List.iter (fun c ->
-    if List.length c > 1 then
-      begin
-	    fprintf out_f "<{ ";
-        List.iter (fun t ->
-	      fprintf out_f "\"%s\", " t.name
-            ) c;
-	    fprintf out_f "}>,\n"
-      end
-  ) clqs;
-  fprintf out_f "};\n";
-  flush out_f;
-
-  fprintf out_f "Unordered = {\n";
-  let ord = ref [] in
-  List.iter (fun j ->
-    List.iter (fun k ->
-      if j.job_task.id < k.job_task.id
-		&& not (conflict jobs j.job_task k.job_task)
-        && (overlap j k)
-		&& not (ordered jobdeps j k) then
-		begin
-		  if (before j k) || (equiv_subsets jobdeps j k) then
-		    ord := (j, k) :: !ord
-	      else if (before k j) || (equiv_subsets jobdeps k j) then
-		    ord := (k, j) :: !ord
-          else
-            fprintf out_f "  <\"%s_%d\", \"%s_%d\">,\n"
-              j.job_task.name j.job_id k.job_task.name k.job_id
-        end
-    ) jobs;
-  ) jobs;
-  fprintf out_f "};\n";
-
-  fprintf out_f "Ordered = {\n";
-  List.iter (fun (j, k) -> 
-  	fprintf out_f "  <\"%s_%d\", \"%s_%d\">, // %s\n"
-  	  j.job_task.name j.job_id k.job_task.name k.job_id
-      (if before j k then "implied" else "imposed")) !ord;
   fprintf out_f "};\n";
 
   fprintf out_f "// Tasks: %d, Jobs: %d, Precs: %d, O_max: %d, H: %d, Util: %f\n"

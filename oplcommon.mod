@@ -37,12 +37,3 @@ task TaskProps[Tasks] = ...;
 {string} Jobs = ...;
 job JobProps[Jobs] = ...;
 {dep} Deps = ...;
-{string} Bufs = ...;
-buf BufProps[Bufs] = ...;
-
-{pair} Hypers = ...;
-
-{clique} Cliques = ...;
-
-{pair} Unordered = ...;
-{pair} Ordered = ...;
