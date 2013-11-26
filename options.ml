@@ -26,12 +26,8 @@ let version = "0.1"
 let outname = ref "main"
 let outdir = ref ""
 let inname = ref ""
-let node = ref ""
 let opt = ref 0
-let use_cache = ref false
-let tff = ref false
 let dot = ref false
-let eps = ref false
 let verbose = ref false
 
 let options =

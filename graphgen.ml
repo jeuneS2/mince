@@ -25,7 +25,11 @@ open Printf
 open Util
 open Grouping
 
-let dump_dot_grps out_f indeps =
+let dump_dot_nodes out_f tasks deps =
+  List.iter (fun t -> fprintf out_f "  \"%s\"\n" t.name) tasks;
+  List.iter (fun d -> fprintf out_f "  \"%s\" -> \"%s\"\n" d.dep_src d.dep_dst) deps
+
+let dump_dot_groups out_f groups =
   List.iter (fun c ->
     if (List.length c) > 1 then
       begin
@@ -34,28 +38,38 @@ let dump_dot_grps out_f indeps =
         fprintf out_f "\" {\n";
         List.iter (fun t -> fprintf out_f "\"%s\"\n" t.name) c;
         fprintf out_f "}\n";
-      end) indeps
+      end) groups
+
+let dump_dot dir name tasks deps =
+  let fname = sprintf "%s.dot" (fname dir name) in
+  if !Options.verbose then
+    fprintf stderr "Generating dot file %s\n" fname;
+  let out_f = open_out fname in
+  fprintf out_f "digraph tasks {\n";
+  dump_dot_nodes out_f tasks deps;
+  fprintf out_f "}\n";
+  close_out out_f
 
 let dump_indep_dot dir name tasks deps =
+  let fname = sprintf "%s.indep.dot" (fname dir name) in
   if !Options.verbose then
-    fprintf stderr "Generating dot file...\n";
-  let out_f = open_out (sprintf "%s.indep.dot" (fname dir name)) in
+    fprintf stderr "Generating dot file %s\n" fname;
+  let out_f = open_out fname in
   fprintf out_f "digraph indep_groups {\n";
-  List.iter (fun t -> fprintf out_f "  \"%s\"\n" t.name) tasks;
-  List.iter (fun d -> fprintf out_f "  \"%s\" -> \"%s\"\n" d.dep_src d.dep_dst) deps;
-  let indepgrps = indep tasks deps in
-  dump_dot_grps out_f indepgrps;
+  dump_dot_nodes out_f tasks deps;
+  let indepgroups = indep tasks deps in
+  dump_dot_groups out_f indepgroups;
   fprintf out_f "}\n";
-  flush out_f
+  close_out out_f
 
 let dump_dep_dot dir name tasks deps =
+  let fname = sprintf "%s.dep.dot" (fname dir name) in
   if !Options.verbose then
-    fprintf stderr "Generating dot file...\n";
-  let out_f = open_out (sprintf "%s.dep.dot" (fname dir name)) in
+    fprintf stderr "Generating dot file %s\n" fname;
+  let out_f = open_out fname in
   fprintf out_f "digraph dep_groups {\n";
-  List.iter (fun t -> fprintf out_f "  \"%s\"\n" t.name) tasks;
-  List.iter (fun d -> fprintf out_f "  \"%s\" -> \"%s\"\n" d.dep_src d.dep_dst) deps;
-  let depgrps = dep tasks deps in
-  dump_dot_grps out_f depgrps;
+  dump_dot_nodes out_f tasks deps;
+  let depgroups = dep tasks deps in
+  dump_dot_groups out_f depgroups;
   fprintf out_f "}\n";
-  flush out_f
+  close_out out_f

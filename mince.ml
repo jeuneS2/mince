@@ -29,9 +29,11 @@ let _ =
   let infile = if !Options.inname = "" then stdin else open_in !Options.inname in
   let lexbuf = Lexing.from_channel infile in
   let (tasks,deps) = Parser.task_specs Lexer.token lexbuf in
-  Spec.print_spec stdout (tasks,deps);
+  if !Options.verbose then
+	Spec.print_spec stderr (tasks,deps);
   if !Options.dot then
 	begin
+      Graphgen.dump_dot !Options.outdir !Options.outname tasks deps;
       Graphgen.dump_indep_dot !Options.outdir !Options.outname tasks deps;
       Graphgen.dump_dep_dot !Options.outdir !Options.outname tasks deps
 	end;
